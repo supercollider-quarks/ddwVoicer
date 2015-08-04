@@ -44,7 +44,7 @@ Voicer {		// collect and manage voicer nodes
 				target = ParGroup.basicNew(targ.server, targ.server.nodeAllocator.allocPerm);
 				targ.doWhenReady {
 					// but can't add immediately
-					targ.server.sendMsg(*(target.newMsg(targ.synthgroup)));
+					targ.server.sendBundle(targ.server.latency, target.newMsg(targ.synthgroup));
 					iMadeTarget = true;
 				}
 			} {
@@ -540,6 +540,10 @@ Voicer {		// collect and manage voicer nodes
 
 	panic {		// free all nodes
 		nodes.do({ arg n; n.releaseNow });
+		// that's for bookkeeping but sometimes something gets lost
+		// so brutally kill everything in the target group too
+		// panic means PANIC
+		target.freeAll;
 	}
 
 	cleanup {		// free non-playing nodes; kind of superfluous now
@@ -656,9 +660,8 @@ Voicer {		// collect and manage voicer nodes
 				var	lag, strum, sustain, i, timingOffset = ~timingOffset ? 0, releaseGate,
 					voicer = ~voicer;
 
-				~freq = (~freq.value + ~detune).asArray;
-
-				if (~freq.isSymbol.not) {
+				if(currentEnvironment.isRest.not or: { voicer.isNil }) {
+					~freq = (~freq.value + ~detune).asArray;
 					~amp = ~amp.value.asArray;
 					lag = ~lag;
 					strum = ~strum;
